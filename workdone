@@ -1,34 +1,32 @@
 wget https://s3-us-west-2.amazonaws.com/pipelinekondhwa/DataSet.txt
-
 hadoop fs -cp s3n://pipelinekondhwa/DataSet.txt /user/ubuntu/dataset
 hadoop fs -cp dataset s3n://jingamastee/
 nano /usr/local/hadoop/etc/hadoop/core-site.xml
 <property>
 <name>fs.s3n.awsAccessKeyId</name>
-<value>YOURAWSACCESSKEYID</value>
+<value>AKIAIXGMERR74SC5ZW3A</value>
 </property>
 <property>
 <name>fs.s3n.awsSecretAccessKey</name>
-<value>YOURAWSACCESSSECRETKEY</value>
+<value>lU8z6llTiSDpaXsiCI+Jd/QfBy0M1w/9VUzMIb9D</value>
 </property>
 cd /usr/local/hadoop/share/hadoop/tools/lib/
-ls aws* azure*
 export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HADOOP_HOME/share/hadoop/tools/lib/*
 echo $HADOOP_CLASSPATH
 
 -----------------------------------------------------------------------------------------
 https://streamsets.com/documentation/datacollector/latest/help/#Install_Config/CMInstall-
 Overview.html#concept_nb5_c3m_25
-sudo yum install wget -y
+sudo yum install wget -y 
 wget https://archives.streamsets.com/datacollector/2.5.1.1/rpm/streamsets-datacollector-2.5.1.1-all-rpms.tgz
-
 tar -xzvf streamsets-datacollector-2.5.1.1-all-rpms.tgz
 cd streamsets-datacollector-2.5.1.1-all-rpms
 sudo yum localinstall streamsets*.rpm
 sudo -i
 service sdc start
 ulimit -n 32768
-http://34.204.13.74:18630/ 
+http://<system-ip>:18630/
+
 *****************************************
 only if your doing it with tar ball
 ./streamsets-datacollector-2.4.0.0/bin/streamsets stagelibs -list
@@ -39,10 +37,9 @@ sudo nano /etc/security/limits.conf
 ubuntu soft nofile 4096
 ______________________________________________________________________________________________
 
-hadoop distcp hdfs://ip-10-0-0-189.ec2.internal:9001/user/ubuntu/data hdfs://ip-10-0-0-207.ec2.internal:9000/user/ubuntu/tarique
+hadoop distcp hdfs://ip-172-31-14-125.ap-south-1.compute.internal:9000/user/ubuntu/Dataset.txt hdfs://ip-172-31-13-89.ap-south-1.compute.internal:9000/user/ubuntu/data
 
-hadoop distcp-Dfs.s3a.access.key=AKIAIXGMERR74SC5ZW3A -Dfs.s3a.secret.key=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 hdfs://ip-172-31-39-64.us-west-
-2.compute.internal:9000/user/ubuntu//StreamSetDataColloctor hdfs://ip-172-31-16-56.us-west-2.compute.internal:9000/user/ubuntu/
+hadoop distcp-Dfs.s3a.access.key=AKIAIXGMERR74SC5ZW3A -Dfs.s3a.secret.key=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 hdfs://ip-172-31-39-64.us-west-2.compute.internal:9000/user/ubuntu//StreamSetDataColloctor hdfs://ip-172-31-16-56.us-west-2.compute.internal:9000/user/ubuntu/
 
 hadoop distcp -Dfs.s3a.access.key=AKIAIXGMERR74SC5ZW3A -Dfs.s3a.secret.key=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 s3a://pipelinekondhwa/StreamSetDataColloctor hdfs://nn:9000/user/ubuntu/BigData.tsv
 
@@ -81,20 +78,23 @@ Keep in mind that when trash is enabled and you remove some files, HDFS capacity
 ____________________________________________
 _________________________________
 nano hdfs-site.xml
-
 Block Size
 <property>
 <name>dfs.block.size</name>
 <value>524288</value>
+
+
+
 </property>
 <property>
 <name>dfs.block.size</name>
 <value>134217728</value>
 </property>
 
+
 hadoop fs -rm -r /user/ubuntu/*
 
-hadoop fs -D dfs.blocksize=268435456 -cp /user/ubuntu/DataSet.txt /user/ubuntu/DataSet
+hadoop fs -D dfs.blocksize=268435456 -cp /user/ubuntu/DataSet.csv /user/ubuntu/DataSet
 ------------------------------------------------------------------
 
 Setting Replication for a dataset
@@ -105,7 +105,7 @@ hdfs dfs -setrep -R 4 purchases.csv  Recursive
 ------------------------------------------------------
 Hadoop Archivals
 
-hadoop archive -archiveName positive.har -p /user/ubuntu/DataSet /user/ubuntu/
+hadoop archive -archiveName positive.har -p /user/ubuntu/DataSet.txt /user/ubuntu/
 hadoop fs -ls
 hadoop fs -lsr positive.har
 hadoop fs -cat positive.har/part-0
@@ -123,25 +123,29 @@ hdfs dfsadmin -report
 hdfs dfsadmin -printTopology
 
 ------------------------------------------------------
-hdfs balancer -threshold 1
+hdfs balancer -threshold 10
 
-This specifies that each DataNode's disk usage must be within 5% of the cluster's overall usage.
+    This specifies that each DataNode's disk usage must be within 5% of the cluster's overall usage.
+    Free up the spaces from some nearly full datanodes.
+    Move data to some newly added datanodes in order to utilize the new machines.
+    Run Balancer when the cluster load is low or in a maintenance window,
+    instead of running it as a background daemon.
+
+
+
+
+hdfs storagepolicies -listPolicies
+dfs.storage.policy.enabled
+dfs.datanode.failed.volumes.tolerated
 
 hdfs mover
 
-A new data migration tool is added for archiving data. The tool is similar to Balancer. It periodically scans
-the files in HDFS to check if the block placement satisfies the storage policy. For the blocks violating the
-storage policy, it moves the replicas to a different storage type in order to fulfill the storage policy requirement.
+A new data migration tool is added for archiving data. The tool is similar to Balancer. It periodically scans the files in HDFS to check if the block placement satisfies the storage policy. For the blocks violating the storage policy, it moves the replicas to a different storage type in order to fulfill the storage policy requirement.
 
-hdfs storagepolicies -listPolicies
-dfs.datanode.failed.volumes.tolerated
 
 cd /usr/local/hadoop/data/hdfs/namenode/current
 cat seen_txid 
 hdfs dfsadmin -rollEdits
-
-
-
 hadoop dfsadmin -safemode enter
 hdfs dfsadmin -saveNamespace 
 Save current namespace into storage directories and reset edits log
@@ -150,8 +154,8 @@ hdfs dfsadmin -fetchImage /home/ubuntu/hadoopbackup.2017
 
 
 Adding users in ubuntu
-sudo adduser dfs1
-sudo adduser dfs1 sudo
+sudo adduser dfs
+sudo adduser dfs sudo
 hadoop fs -mkdir /user/dfs
 hadoop fs -chown dfs:supergroup /user/dfs
 su dfs
@@ -172,12 +176,15 @@ hadoop fs -mkdir /user/ubuntu/testQuota/2
 hadoop fs -mkdir /user/ubuntu/testQuota/3
 hadoop fs -count -q /user/ubuntu/testQuota
 hadoop dfsadmin -clrQuota /user/ubuntu/testQuota
-hadoop dfsadmin -setSpaceQuota 5M /user/ubuntu/testQuota
+hadoop dfsadmin -setSpaceQuota 500M /user/ubuntu/testQuota
 hadoop fs -cp hadoop-2.7.2.tar.gz /user/ubuntu/testQuota
 hadoop fs -count -h -q /user/ubuntu/testQuota
 hadoop dfsadmin -clrSpaceQuota /user/ubuntu/testQuota
+
 ======================================================================
+
 CREATE SNAPSHOTS
+
 hdfs dfs -mkdir /user/ubuntu/cloudage_data
 echo "This is my snapshot data at cloudage" | hdfs dfs -put - /user/ubuntu/cloudage_data/data.txt
 hdfs dfs -cat /user/ubuntu/cloudage_data/data.txt
@@ -202,7 +209,7 @@ Configure Backup Node
 
 <property>
 <name>dfs.namenode.backup.address</name>
-<value>newnode:50100</value>
+<value>dn:50100</value>
 <description>
 The backup node server address and port.
 If the port is 0 then the server will start on a free port.
@@ -230,9 +237,10 @@ nn
 hdfs-site.xml
 <property>
 <name>dfs.hosts.exclude</name>
-<value>/usr/local/hadoop/etc/hadoop/excludes</value>
+<value>/usr/local/hadoop/etc/hadoop/dfs.excludes</value>
 <final>true</final>
 </property>
+
 -----------------------------------------------------------------------------------------------------------------------------------
 yarn-site.xml
 <property>
@@ -251,20 +259,23 @@ nano dfs.include
 ip-172-31-30-159.eu-west-1.compute.intern
 update the Nodes in slaves file
 Remove the Nodes from exclude file
+update /etc/hosts
+
 hdfs-site.xml
 <property>
 <name>dfs.hosts</name>
 <value>/usr/local/hadoop/etc/hadoop/includes</value>
 <final>true</final>
 </property>
+
 mapred-site.xml
 <property>
 <name>mapred.hosts.include</name>
-<value>/usr/local/hadoop/etc/hadoop/includes</value>
+<value>/usr/local/hadoop/etc/hadoop/dfs.include</value>
 <final>true</final>
 </property>
 
-yarn rmadmin -refreshNodes
+hadoop mradmin -refreshNodes
 hdfs balancer
 hadoop dfsadmin -report > report_aug
 hadoop dfsadmin -report
@@ -372,3 +383,6 @@ Thus, with the above settings on our example cluster, each Map task will get the
 configuration map task memory is 4GB (mapreduce.map.memory.mb = 4096 ) and reduce task physical memory is 8GB (mapreduce.reduce.memory.mb = 8192 ). Node Manager’s physical memory is 40GB and that’s the reason there will be a maximum of 10 mappers((40/4) and 5 reducers(40/8)
 http://docs.hortonworks.com/index.html
 https://hortonworks.com/blog/how-to-plan-and-configure-yarn-in-hdp-2-0/
+
+
+
